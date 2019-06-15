@@ -8,8 +8,9 @@ contract PollSystem is Ownable {
 
 	using SafeMath for uint;
 
-	mapping(address => bool) userActive;
+	mapping(address => bool) public userActive;
 	address[] public users;
+	uint public usersCount;
 
 	mapping(uint => Voting) public votings;
 	uint public votingsCount;
@@ -52,6 +53,7 @@ contract PollSystem is Ownable {
 		require(_userAddress != address(0), "user address can not be 0x00");
 		userActive[_userAddress] = true;
 		users.push(_userAddress);
+		usersCount = usersCount.add(1);
 	}
 
 	/**
@@ -100,6 +102,8 @@ contract PollSystem is Ownable {
                 break;
             }
         }
+		// decrease users count by 1
+		usersCount = usersCount.sub(1);
     }
 
 	//*************
@@ -121,6 +125,46 @@ contract PollSystem is Ownable {
 		votings[_votingIndex].choiceVotesCount[_choiceIndex] = votings[_votingIndex].choiceVotesCount[_choiceIndex].add(1);
 		// set user as voted
 		votings[_votingIndex].voted[msg.sender] = true;
+	}
+
+	//***************
+	// Public methods
+	//***************
+
+	/**
+	 * @dev Returns an array of choices for a voting
+	 * @param _votingIndex voting index
+	 * @return array of choices
+	 */
+	function getChoicesFromVoting(uint _votingIndex) external view returns(string[] memory) {
+		require(_votingIndex < votingsCount, "voting does not exist");
+		return votings[_votingIndex].choices;
+	}
+
+	/**
+	 * @dev Returns array with votes count per choice
+	 * @param _votingIndex voting index
+	 * @return array with votes count for each choice
+	 */
+	function getVotesCount(uint _votingIndex) external view returns(uint[] memory) {
+		require(_votingIndex < votingsCount, "voting does not exist");
+		uint[] memory votesCount = new uint[](votings[_votingIndex].choicesCount);
+		for(uint i = 0; i < votings[_votingIndex].choicesCount; i++) {
+			votesCount[i] = votings[_votingIndex].choiceVotesCount[i];
+		}
+		return votesCount;
+	}
+
+	/**
+	 * @dev Checks whether user has already voted
+	 * @param _votingIndex voting index
+	 * @param _userAddress user address
+	 * @return whether user voted
+	 */
+	function isUserVoted(uint _votingIndex, address _userAddress) external view returns(bool) {
+		require(_votingIndex < votingsCount, "voting does not exist");
+		require(_userAddress != address(0), "user address can not be 0x00");
+		return votings[_votingIndex].voted[_userAddress];
 	}
 
 }
